@@ -72,7 +72,7 @@ def test_submit_turn(client):
     assert data["speaker_type"] in ("character", "narrator")
     assert isinstance(data["speaker"], str)
     assert isinstance(data["dialogue"], str)
-    assert player_text in data["dialogue"], "Mock should echo the player input"
+    assert len(data["dialogue"]) > 0, "Dialogue should not be empty"
     assert isinstance(data["available_characters"], list)
     assert isinstance(data["available_exits"], list)
     assert isinstance(data["suggestions"], list)
@@ -157,4 +157,26 @@ def test_move_blocked_when_locked(client):
 
 def test_invalid_session_returns_404(client):
     resp = client.get("/api/sessions/nonexistent-id/state")
+    assert resp.status_code == 404
+
+
+# ---------- GET /api/sessions/{id}/traces/latest ----------
+
+
+def test_latest_trace_after_turn(client):
+    session = _create_session(client)
+    client.post(
+        f"/api/sessions/{session['session_id']}/turns",
+        json={"player_input": "Hello"},
+    )
+    resp = client.get(f"/api/sessions/{session['session_id']}/traces/latest")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "turn_index" in data
+
+
+def test_latest_trace_404_no_traces(client):
+    session = _create_session(client)
+    resp = client.get(f"/api/sessions/{session['session_id']}/traces/latest")
+    # No turns submitted — no traces
     assert resp.status_code == 404

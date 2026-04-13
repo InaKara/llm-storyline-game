@@ -1,15 +1,27 @@
-"""Thin coordinator that orchestrates the full turn pipeline (mock LLM in Phase 3)."""
+"""Thin coordinator that orchestrates the full turn pipeline."""
 
 from __future__ import annotations
 
+import re
+
 from backend.app.core.session_store import SessionStore
+from backend.app.core.trace_logger import TraceLogger
 from backend.app.domain.game_state import GameState, TurnRecord
 from backend.app.domain.progress_models import ProgressEvaluatorOutput, StateEffects
 from backend.app.domain.response_models import ResponseConstraints, TurnResult
 from backend.app.domain.scenario_models import ScenarioPackage
+from backend.app.services.character_responder import CharacterResponder
 from backend.app.services.constraint_builder import ConstraintBuilder
+from backend.app.services.progress_evaluator import ProgressEvaluator
+from backend.app.services.prompt_builder import PromptBuilder
 from backend.app.services.session_initializer import SessionInitializer
 from backend.app.services.state_updater import StateUpdater
+
+# Simple movement patterns — avoids a third LLM call per turn
+_MOVEMENT_RE = re.compile(
+    r"^(?:go\s+to|move\s+to|enter|walk\s+to|head\s+to)\s+(?:the\s+)?(.+)$",
+    re.IGNORECASE,
+)
 
 
 class GameService:
@@ -21,11 +33,19 @@ class GameService:
         initializer: SessionInitializer,
         state_updater: StateUpdater,
         constraint_builder: ConstraintBuilder,
+        progress_evaluator: ProgressEvaluator | None = None,
+        character_responder: CharacterResponder | None = None,
+        prompt_builder: PromptBuilder | None = None,
+        trace_logger: TraceLogger | None = None,
     ) -> None:
         self._store = store
         self._initializer = initializer
         self._state_updater = state_updater
         self._constraint_builder = constraint_builder
+        self._evaluator = progress_evaluator
+        self._responder = character_responder
+        self._prompt_builder = prompt_builder
+        self._trace_logger = trace_logger
 
     # ------------------------------------------------------------------
     # Session lifecycle
@@ -47,13 +67,30 @@ class GameService:
         return self._store.get_session(session_id).game_state
 
     def submit_turn(self, session_id: str, player_input: str) -> tuple[int, TurnResult]:
-        """Process one player turn. Returns (turn_index, TurnResult)."""
+        """Process one player turn. Returns (turn_index, TurnResult).
+
+        Detects movement commands via simple pattern matching. Everything else
+        goes through the evaluator → state updater → constraint builder →
+        responder pipeline.
+        """
         session = self._store.get_session(session_id)
         gs = session.game_state
         pkg = session.scenario_package
 
-        # 1. Mock evaluator — no claims matched, intent = question
-        evaluator_output = self._mock_evaluate(player_input, gs)
+        # --- Input classification: movement vs character interaction ---
+        move_match = _MOVEMENT_RE.match(player_input.strip())
+        if move_match:
+            target_raw = move_match.group(1).strip().lower()
+            # Match against available exit IDs and location names
+            target_id = self._resolve_location(target_raw, gs, pkg)
+            if target_id and target_id in gs.available_exits:
+                return self.handle_movement(session_id, target_id)
+
+        # --- Character interaction pipeline ---
+        state_before = gs.model_dump()
+
+        # 1. Evaluate
+        evaluator_output = self._evaluate(player_input, gs, pkg)
 
         # 2. Apply state update
         gs = self._state_updater.apply_progress(gs, evaluator_output, pkg.logic)
@@ -63,8 +100,8 @@ class GameService:
             gs, evaluator_output, pkg.logic,
         )
 
-        # 4. Mock responder — constraints are forwarded (used by real LLM in Phase 4)
-        dialogue = self._mock_respond(player_input, gs, pkg, constraints)
+        # 4. Respond
+        dialogue = self._respond(player_input, gs, pkg, constraints, evaluator_output)
 
         # 5. Record turn
         turn_record = TurnRecord(
@@ -75,9 +112,28 @@ class GameService:
         )
         gs = self._state_updater.append_turn(gs, turn_record)
 
-        # 6. Increment turn index and persist
+        # 6. Update summary based on discovered topics
+        if gs.conversation_state.discovered_topics:
+            topics = ", ".join(gs.conversation_state.discovered_topics)
+            gs.conversation_state.summary = (
+                f"Topics discussed so far: {topics}."
+            )
+
+        # 7. Increment turn index and persist
         session.turn_index += 1
         self._store.update_session(session_id, gs)
+
+        # 8. Write trace
+        self._write_trace(
+            session_id,
+            session.turn_index,
+            player_input=player_input,
+            evaluator_output=evaluator_output,
+            constraints=constraints,
+            dialogue=dialogue,
+            state_before=state_before,
+            state_after=gs.model_dump(),
+        )
 
         return session.turn_index, self._build_character_turn(gs, pkg, dialogue)
 
@@ -87,20 +143,11 @@ class GameService:
         gs = session.game_state
         pkg = session.scenario_package
 
+        state_before = gs.model_dump()
         gs = self._state_updater.apply_movement(gs, target_location, pkg.logic)
 
-        # Find location description
-        loc_desc = target_location
-        for loc in pkg.locations.locations:
-            if loc.id == target_location:
-                loc_desc = loc.description
-                break
-
-        dialogue = f"You move to {loc_desc}"
-        if gs.flags.game_finished:
-            dialogue = (
-                f"You enter the archive. {pkg.story.ending_summary}"
-            )
+        # Build narrator dialogue from templates
+        dialogue = self._narrator_for_movement(gs, pkg, target_location)
 
         # Record narrator turn in conversation history
         turn_record = TurnRecord(
@@ -114,6 +161,16 @@ class GameService:
         # Increment turn index and persist
         session.turn_index += 1
         self._store.update_session(session_id, gs)
+
+        # Write movement trace
+        self._write_movement_trace(
+            session_id,
+            session.turn_index,
+            target_location=target_location,
+            dialogue=dialogue,
+            state_before=state_before,
+            state_after=gs.model_dump(),
+        )
 
         return session.turn_index, self._build_narrator_turn(gs, pkg, dialogue)
 
@@ -181,13 +238,47 @@ class GameService:
         self._store.update_session(session_id, gs)
         return gs
 
+    def get_latest_trace(self, session_id: str) -> dict | None:
+        """Return the latest trace for a session, or *None*."""
+        if self._trace_logger is None:
+            return None
+        return self._trace_logger.read_latest_trace(session_id)
+
     # ------------------------------------------------------------------
-    # Mock implementations (replaced by real LLM in Phase 4)
+    # Evaluate / Respond — delegates to real services or falls back to mock
+    # ------------------------------------------------------------------
+
+    def _evaluate(
+        self,
+        player_input: str,
+        gs: GameState,
+        pkg: ScenarioPackage,
+    ) -> ProgressEvaluatorOutput:
+        if self._evaluator is not None:
+            return self._evaluator.evaluate(player_input, gs, pkg)
+        return self._mock_evaluate(player_input, gs)
+
+    def _respond(
+        self,
+        player_input: str,
+        gs: GameState,
+        pkg: ScenarioPackage,
+        constraints: ResponseConstraints,
+        evaluator_output: ProgressEvaluatorOutput,
+    ) -> str:
+        if self._responder is not None:
+            return self._responder.respond(
+                gs, evaluator_output, constraints, player_input, pkg,
+            )
+        return self._mock_respond(player_input, gs, pkg, constraints)
+
+    # ------------------------------------------------------------------
+    # Mock fallbacks (used when LLM services are not injected, e.g. tests)
     # ------------------------------------------------------------------
 
     @staticmethod
     def _mock_evaluate(player_input: str, game_state: GameState) -> ProgressEvaluatorOutput:
-        """Return a no-op evaluator result. Replaced by real LLM evaluator in Phase 4."""
+        """Return a no-op evaluator result."""
         return ProgressEvaluatorOutput(
             intent="question",
             target=game_state.addressed_character,
@@ -202,20 +293,121 @@ class GameService:
         player_input: str,
         game_state: GameState,
         package: ScenarioPackage,
-        constraints: "ResponseConstraints",
+        constraints: ResponseConstraints,
     ) -> str:
-        """Return hardcoded character dialogue. Replaced by real LLM responder in Phase 4.
-
-        The *constraints* parameter is accepted so the pipeline contract is
-        exercised end-to-end even with the mock.  Phase 4 will forward these
-        constraints into the real LLM prompt.
-        """
+        """Return hardcoded character dialogue."""
         char_name = "Unknown"
         for c in package.characters.characters:
             if c.id == game_state.addressed_character:
                 char_name = c.name
                 break
         return f"[Mock — received: '{player_input}'] {char_name} considers your words carefully."
+
+    # ------------------------------------------------------------------
+    # Narrator helpers
+    # ------------------------------------------------------------------
+
+    def _narrator_for_movement(
+        self, gs: GameState, pkg: ScenarioPackage, target_location: str,
+    ) -> str:
+        """Build narrator text for a location transition."""
+        if gs.flags.game_finished and self._prompt_builder is not None:
+            # Archive discovery + ending
+            discovery = self._prompt_builder.build_narrator_text(
+                "archive_discovery", {},
+            )
+            ending = self._prompt_builder.build_narrator_text("ending", {})
+            return f"{discovery}\n\n{ending}"
+
+        if gs.flags.game_finished:
+            return f"You enter the archive. {pkg.story.ending_summary}"
+
+        # Normal scene transition
+        loc_name = target_location
+        loc_desc = target_location
+        for loc in pkg.locations.locations:
+            if loc.id == target_location:
+                loc_name = loc.name
+                loc_desc = loc.description
+                break
+
+        if self._prompt_builder is not None:
+            return self._prompt_builder.build_narrator_text(
+                "scene_transition",
+                {"location_name": loc_name, "location_description": loc_desc},
+            )
+        return f"You move to {loc_desc}"
+
+    @staticmethod
+    def _resolve_location(
+        target_raw: str, gs: GameState, pkg: ScenarioPackage,
+    ) -> str | None:
+        """Resolve a user-typed location name to a location ID."""
+        # Direct ID match
+        if target_raw in {loc.id for loc in pkg.locations.locations}:
+            return target_raw
+        # Match against location names (case-insensitive)
+        for loc in pkg.locations.locations:
+            if target_raw == loc.name.lower() or target_raw in loc.name.lower():
+                return loc.id
+        return None
+
+    # ------------------------------------------------------------------
+    # Trace logging
+    # ------------------------------------------------------------------
+
+    def _write_trace(
+        self,
+        session_id: str,
+        turn_index: int,
+        *,
+        player_input: str,
+        evaluator_output: ProgressEvaluatorOutput,
+        constraints: ResponseConstraints,
+        dialogue: str,
+        state_before: dict,
+        state_after: dict,
+    ) -> None:
+        if self._trace_logger is None:
+            return
+        self._trace_logger.write_trace(
+            session_id,
+            turn_index,
+            {
+                "turn_index": turn_index,
+                "player_input": player_input,
+                "evaluator_output": evaluator_output.model_dump(),
+                "constraints": constraints.model_dump(),
+                "responder_output": dialogue,
+                "state_before": state_before,
+                "state_after": state_after,
+            },
+        )
+
+    def _write_movement_trace(
+        self,
+        session_id: str,
+        turn_index: int,
+        *,
+        target_location: str,
+        dialogue: str,
+        state_before: dict,
+        state_after: dict,
+    ) -> None:
+        if self._trace_logger is None:
+            return
+        self._trace_logger.write_trace(
+            session_id,
+            turn_index,
+            {
+                "turn_index": turn_index,
+                "type": "movement",
+                "target_location": target_location,
+                "narrator_dialogue": dialogue,
+                "state_before": state_before,
+                "state_after": state_after,
+            },
+        )
 
     # ------------------------------------------------------------------
     # Turn result builders

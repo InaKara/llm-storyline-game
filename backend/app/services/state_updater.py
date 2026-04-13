@@ -43,6 +43,11 @@ class StateUpdater:
                 if gate.effect == "unlock_archive":
                     flags.archive_unlocked = True
                     cast.steward.yielded = True
+                    # Max out pressure when gate fires so behaviour guide
+                    # aligns with the yield constraint
+                    conv.steward_pressure = (
+                        scenario_logic.pressure_rules.max_pressure
+                    )
 
         return game_state.model_copy(
             update={

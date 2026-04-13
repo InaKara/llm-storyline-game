@@ -189,6 +189,28 @@ async def move_to_location(
 
 
 # ---------------------------------------------------------------------------
+# Trace endpoints (Phase 5)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/sessions/{session_id}/traces/latest")
+async def get_latest_trace(
+    session_id: str,
+    svc: GameService = Depends(_get_service),
+) -> dict:
+    """Return the latest trace for a session."""
+    try:
+        svc.get_state(session_id)  # validate session exists
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    trace = svc.get_latest_trace(session_id)
+    if trace is None:
+        raise HTTPException(status_code=404, detail="No traces found")
+    return trace
+
+
+# ---------------------------------------------------------------------------
 # Debug endpoints (Phase 2)
 # ---------------------------------------------------------------------------
 

@@ -119,6 +119,8 @@ def test_full_accusation_unlocks_archive(updater, initial_gs, logic):
     gs = updater.apply_progress(initial_gs, output, logic)
     assert gs.flags.archive_unlocked is True
     assert gs.cast_state.steward.yielded is True
+    # Gate match should max out pressure so behaviour guide aligns with yield
+    assert gs.conversation_state.steward_pressure == logic.pressure_rules.max_pressure
 
 
 def test_movement_to_archive_finishes_game(updater, logic):
