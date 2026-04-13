@@ -1,14 +1,12 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.app.main import app
+from backend.app.main import app, store
 
 
 @pytest.fixture()
 def client():
-    # Reset mock sessions between tests
-    from backend.app.api.routes import _mock_sessions
-
-    _mock_sessions.clear()
+    # Clear all sessions between tests for isolation
+    store._sessions.clear()
     with TestClient(app) as c:
         yield c

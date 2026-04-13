@@ -110,6 +110,7 @@ def test_reset_session(client):
     assert CREATE_SESSION_FIELDS <= set(data.keys()), (
         f"Missing fields: {CREATE_SESSION_FIELDS - set(data.keys())}"
     )
+    # Reset preserves the same session ID
     assert data["session_id"] == session["session_id"]
     assert data["speaker_type"] == "narrator"
     assert isinstance(data["dialogue"], str)
@@ -135,6 +136,18 @@ def test_switch_to_invalid_character_rejected(client):
     resp = client.put(
         f"/api/sessions/{session['session_id']}/addressed-character",
         json={"character_id": "stranger"},
+    )
+    assert resp.status_code == 422
+
+
+# ---------- POST /api/sessions/{id}/move ----------
+
+
+def test_move_blocked_when_locked(client):
+    session = _create_session(client)
+    resp = client.post(
+        f"/api/sessions/{session['session_id']}/move",
+        json={"target_location": "archive"},
     )
     assert resp.status_code == 422
 

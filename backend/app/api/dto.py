@@ -69,3 +69,9 @@ class SwitchCharacterRequest(BaseModel):
     """Request body for changing the addressed character (PUT /sessions/{id}/addressed-character)."""
 
     character_id: str
+
+
+class MoveRequest(BaseModel):
+    """Request body for moving to a new location (POST /sessions/{id}/move)."""
+
+    target_location: str
