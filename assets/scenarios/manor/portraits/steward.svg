@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
+  <rect width="400" height="600" fill="#1a1a2e"/>
+  <circle cx="200" cy="200" r="60" fill="#2a2a4a" stroke="#c9a959" stroke-width="2"/>
+  <rect x="160" y="280" width="80" height="120" rx="8" fill="#2a2a4a" stroke="#c9a959" stroke-width="2"/>
+  <text x="200" y="440" text-anchor="middle" fill="#c9a959" font-family="Georgia" font-size="18">Mr. Hargrove</text>
+  <text x="200" y="465" text-anchor="middle" fill="#a0a0b0" font-family="Georgia" font-size="14">The Steward</text>
+</svg>

@@ -37,6 +37,7 @@ class GameService:
         character_responder: CharacterResponder | None = None,
         prompt_builder: PromptBuilder | None = None,
         trace_logger: TraceLogger | None = None,
+        asset_base_url: str = "/assets",
     ) -> None:
         self._store = store
         self._initializer = initializer
@@ -46,6 +47,7 @@ class GameService:
         self._responder = character_responder
         self._prompt_builder = prompt_builder
         self._trace_logger = trace_logger
+        self._asset_base_url = asset_base_url.rstrip("/")
 
     # ------------------------------------------------------------------
     # Session lifecycle
@@ -456,13 +458,17 @@ class GameService:
                 return c.name
         return gs.addressed_character
 
-    @staticmethod
-    def _background_url(gs: GameState, pkg: ScenarioPackage) -> str:
-        return pkg.assets.backgrounds.get(gs.location, "")
+    def _background_url(self, gs: GameState, pkg: ScenarioPackage) -> str:
+        raw = pkg.assets.backgrounds.get(gs.location, "")
+        if raw:
+            return f"{self._asset_base_url}/{raw}"
+        return ""
 
-    @staticmethod
-    def _portrait_url(gs: GameState, pkg: ScenarioPackage) -> str | None:
-        return pkg.assets.portraits.get(gs.addressed_character)
+    def _portrait_url(self, gs: GameState, pkg: ScenarioPackage) -> str | None:
+        raw = pkg.assets.portraits.get(gs.addressed_character)
+        if raw:
+            return f"{self._asset_base_url}/{raw}"
+        return raw
 
     @staticmethod
     def _suggestions(gs: GameState, pkg: ScenarioPackage) -> list[str]:

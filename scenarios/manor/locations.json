@@ -4,14 +4,14 @@
       "id": "study",
       "name": "The Study",
       "description": "A wood-paneled room with tall bookshelves and a broad mahogany desk. Papers are stacked neatly. The steward and heir are both present.",
-      "background_asset": "study.png",
+      "background_asset": "study.svg",
       "initially_available": true
     },
     {
       "id": "archive",
       "name": "The Archive Room",
       "description": "A narrow room lined floor to ceiling with document shelves. Dust motes drift in the lamplight. A locked cabinet stands against the far wall.",
-      "background_asset": "archive.png",
+      "background_asset": "archive.svg",
       "initially_available": false
     }
   ]

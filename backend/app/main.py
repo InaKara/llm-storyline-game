@@ -82,6 +82,7 @@ game_service = GameService(
     character_responder=character_responder,
     prompt_builder=prompt_builder,
     trace_logger=trace_logger,
+    asset_base_url=settings.asset_base_url,
 )
 set_game_service(game_service)
 

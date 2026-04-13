@@ -6,7 +6,7 @@
       "role": "steward",
       "personality": "Formal, guarded, efficient. Maintains composure under pressure but becomes sharper when cornered.",
       "knowledge": "Knows the full truth. Found the testament, read it, hid it to preserve his authority.",
-      "portrait_asset": "steward.png"
+      "portrait_asset": "steward.svg"
     },
     {
       "id": "heir",
@@ -14,7 +14,7 @@
       "role": "heir",
       "personality": "Direct, observant, increasingly impatient. Suspects foul play but lacks proof.",
       "knowledge": "Does not know the truth as fact. Suspects the steward is deliberately delaying. Cannot prove it.",
-      "portrait_asset": "heir.png"
+      "portrait_asset": "heir.svg"
     }
   ]
 }
