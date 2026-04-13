@@ -1,0 +1,23 @@
+{
+  "style_hints": {
+    "tone": "gothic manor mystery, restrained and formal",
+    "vocabulary": ["testament", "estate", "authority", "archive", "document"],
+    "era_feeling": "late Victorian"
+  },
+  "story_truth_prompt_form": "The steward, Mr. Hargrove, discovered the testament in the archive weeks ago. He read it and learned it transfers full authority over the estate to Lady Ashworth, the heir, effective immediately. He hid the document to preserve his own control. The heir suspects deliberate delay but has no proof.",
+  "suggestions_by_context": {
+    "start": [
+      "Ask the steward about the testament",
+      "Ask the heir what she thinks happened",
+      "Look around the study"
+    ],
+    "mid_game": [
+      "Confront the steward about the delay",
+      "Ask the heir if she trusts the steward",
+      "Accuse the steward of hiding the testament"
+    ],
+    "post_unlock": [
+      "Go to the archive"
+    ]
+  }
+}

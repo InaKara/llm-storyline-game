@@ -1,0 +1,19 @@
+{
+  "starting_location": "study",
+  "starting_addressed_character": "steward",
+  "initial_flags": {
+    "archive_unlocked": false,
+    "game_finished": false
+  },
+  "initial_conversation_state": {
+    "last_speaker": null,
+    "steward_pressure": 0,
+    "discovered_topics": [],
+    "summary": "",
+    "recent_turns": []
+  },
+  "initial_cast_state": {
+    "steward": { "available": true, "yielded": false },
+    "heir": { "available": true }
+  }
+}

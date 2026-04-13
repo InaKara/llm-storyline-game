@@ -1,4 +1,5 @@
 import uuid
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
@@ -131,3 +132,28 @@ async def switch_character(
         steward_pressure=0,
         discovered_topics=[],
     )
+
+
+# ---------------------------------------------------------------------------
+# Debug endpoints (Phase 2)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/debug/scenario/{scenario_id}")
+async def debug_scenario(scenario_id: str) -> dict:
+    """Load and return a full scenario package as JSON (development only)."""
+    from backend.app.core.config import get_settings
+    from backend.app.core.validators import validate_scenario_package
+    from backend.app.services.scenario_loader import ScenarioLoader
+
+    loader = ScenarioLoader(base_path=get_settings().scenario_root_path)
+    try:
+        package = loader.load_scenario_package(scenario_id)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Scenario '{scenario_id}' not found")
+
+    errors = validate_scenario_package(package)
+    return {
+        "scenario": package.model_dump(),
+        "validation_errors": errors,
+    }

@@ -1,0 +1,60 @@
+{
+  "claims": [
+    {
+      "id": "claim_steward_possesses_testament",
+      "description": "The steward possesses or has found the hidden testament."
+    },
+    {
+      "id": "claim_steward_withholding",
+      "description": "The steward is deliberately withholding or hiding the testament."
+    },
+    {
+      "id": "claim_motive_control",
+      "description": "The steward's motive is to preserve control over the estate, because the testament transfers authority to the heir."
+    }
+  ],
+  "gates": [
+    {
+      "id": "archive_unlock",
+      "required_claim_ids": [
+        "claim_steward_possesses_testament",
+        "claim_steward_withholding",
+        "claim_motive_control"
+      ],
+      "effect": "unlock_archive",
+      "description": "All three claims must be matched in a single accusation to unlock the archive."
+    }
+  ],
+  "end_conditions": [
+    {
+      "trigger": "enter_location",
+      "location": "archive",
+      "requires_flag": "archive_unlocked",
+      "effect": "game_finished"
+    }
+  ],
+  "pressure_rules": {
+    "min_claims_for_pressure": 1,
+    "max_pressure": 2
+  },
+  "constraint_rules": {
+    "steward_before_unlock": {
+      "may_yield": false,
+      "may_deny": true,
+      "may_deflect": true,
+      "may_hint": false
+    },
+    "steward_after_unlock": {
+      "may_yield": true,
+      "may_deny": false,
+      "may_deflect": false,
+      "may_hint": false
+    },
+    "heir_default": {
+      "may_yield": false,
+      "may_deny": false,
+      "may_deflect": false,
+      "may_hint": true
+    }
+  }
+}

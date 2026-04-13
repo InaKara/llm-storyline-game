@@ -1,0 +1,10 @@
+{
+  "portraits": {
+    "steward": "scenarios/manor/portraits/steward.png",
+    "heir": "scenarios/manor/portraits/heir.png"
+  },
+  "backgrounds": {
+    "study": "scenarios/manor/backgrounds/study.png",
+    "archive": "scenarios/manor/backgrounds/archive.png"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "scenario_id": "manor",
+  "title": "The Missing Testament",
+  "premise": "You arrive at a manor where an important testament has gone missing. The estate's future hangs in the balance.",
+  "story_truth": {
+    "hidden_item": "testament",
+    "current_holder": "steward",
+    "motive": "preserve control over the estate",
+    "authority_transfers_to": "heir"
+  },
+  "ending_summary": "The steward yields under pressure. The archive is opened, the testament is found, and authority passes to the rightful heir."
+}
