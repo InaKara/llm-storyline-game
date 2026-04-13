@@ -1,0 +1,1 @@
+You make your way to {{location_name}}. {{location_description}}

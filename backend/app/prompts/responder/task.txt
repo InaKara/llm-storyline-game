@@ -1,0 +1,20 @@
+PLAYER UTTERANCE: {{player_utterance}}
+PLAYER INTENT: {{intent}}
+TARGET: {{target}}
+MATCHED CLAIMS: {{matched_claim_ids}}
+
+RESPONSE CONSTRAINTS:
+- may_yield: {{may_yield}}
+- may_deny: {{may_deny}}
+- may_deflect: {{may_deflect}}
+- may_hint: {{may_hint}}
+
+RECENT CONVERSATION:
+{{recent_turns}}
+
+CONVERSATION SUMMARY: {{conversation_summary}}
+
+CURRENT LOCATION: {{current_location}}
+STEWARD PRESSURE LEVEL: {{steward_pressure}}
+
+Respond in character. Obey the constraints above.

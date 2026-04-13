@@ -1,0 +1,18 @@
+PLAYER UTTERANCE: {{player_utterance}}
+ADDRESSED CHARACTER: {{addressed_character}}
+CURRENT LOCATION: {{current_location}}
+
+CONVERSATION SUMMARY: {{conversation_summary}}
+RECENT TURNS:
+{{recent_turns}}
+
+STORY TRUTH (hidden from the player, known to you):
+{{story_truth}}
+
+AVAILABLE CLAIMS (match IDs if the player addresses them):
+{{claims}}
+
+CURRENT FLAGS:
+{{current_flags}}
+
+Evaluate the player's utterance and return structured JSON.

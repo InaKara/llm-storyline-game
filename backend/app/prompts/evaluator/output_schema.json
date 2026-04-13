@@ -1,0 +1,39 @@
+{
+  "type": "object",
+  "properties": {
+    "intent": {
+      "type": "string",
+      "enum": ["question", "accusation", "inspection", "statement", "movement", "other"]
+    },
+    "target": {
+      "type": ["string", "null"],
+      "description": "Who or what the player is targeting with this utterance."
+    },
+    "matched_claim_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of claims from the provided list that the player's utterance addresses."
+    },
+    "matched_gate_condition_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of gate conditions satisfied by this utterance."
+    },
+    "state_effects": {
+      "type": "object",
+      "properties": {
+        "unlock_archive": { "type": "boolean" },
+        "increase_steward_pressure": { "type": "boolean" },
+        "mark_topic_discovered": { "type": ["string", "null"] }
+      },
+      "required": ["unlock_archive", "increase_steward_pressure", "mark_topic_discovered"],
+      "additionalProperties": false
+    },
+    "explanation": {
+      "type": "string",
+      "description": "Brief reasoning for your evaluation."
+    }
+  },
+  "required": ["intent", "target", "matched_claim_ids", "matched_gate_condition_ids", "state_effects", "explanation"],
+  "additionalProperties": false
+}
