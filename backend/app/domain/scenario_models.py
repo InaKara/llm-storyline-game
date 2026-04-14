@@ -38,6 +38,7 @@ class CharacterDefinition(BaseModel):
     role: str
     personality: str
     knowledge: str
+    visual_description: str = ""
     portrait_asset: str
 
 

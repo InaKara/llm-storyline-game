@@ -1,10 +1,10 @@
 {
   "portraits": {
-    "steward": "scenarios/manor/portraits/steward.svg",
-    "heir": "scenarios/manor/portraits/heir.svg"
+    "steward": "scenarios/manor/portraits/steward.png",
+    "heir": "scenarios/manor/portraits/heir.png"
   },
   "backgrounds": {
-    "study": "scenarios/manor/backgrounds/study.svg",
-    "archive": "scenarios/manor/backgrounds/archive.svg"
+    "study": "scenarios/manor/backgrounds/study.png",
+    "archive": "scenarios/manor/backgrounds/archive.png"
   }
 }

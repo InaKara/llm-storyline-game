@@ -6,7 +6,8 @@
       "role": "steward",
       "personality": "Formal, guarded, efficient. Maintains composure under pressure but becomes sharper when cornered.",
       "knowledge": "Knows the full truth. Found the testament, read it, hid it to preserve his authority.",
-      "portrait_asset": "steward.svg"
+      "visual_description": "Sly-looking man in his late 50s. Thin face, sharp narrow eyes, receding grey hair slicked back. Wears a fitted dark charcoal vest over a crisp white shirt. Faint smirk suggesting hidden motives.",
+      "portrait_asset": "steward.png"
     },
     {
       "id": "heir",
@@ -14,7 +15,8 @@
       "role": "heir",
       "personality": "Direct, observant, increasingly impatient. Suspects foul play but lacks proof.",
       "knowledge": "Does not know the truth as fact. Suspects the steward is deliberately delaying. Cannot prove it.",
-      "portrait_asset": "heir.svg"
+      "visual_description": "Attractive, elegant woman in her early 30s. Striking features — high cheekbones, bright intelligent eyes, rich auburn hair loosely pinned up. Wears a refined cream blouse with a delicate gold pendant. Confident, slightly impatient expression.",
+      "portrait_asset": "heir.png"
     }
   ]
 }

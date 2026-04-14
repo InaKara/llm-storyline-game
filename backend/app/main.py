@@ -89,6 +89,29 @@ set_game_service(game_service)
 app.include_router(router, prefix="/api")
 
 
+def _check_scenario_assets() -> None:
+    """Log warnings at startup for referenced asset files that don't exist on disk."""
+    assets_root = Path("assets")
+    for scenario_dir in settings.scenario_root_path.iterdir():
+        if not scenario_dir.is_dir():
+            continue
+        try:
+            pkg = loader.load_scenario_package(scenario_dir.name)
+        except Exception:
+            continue
+        for path in list(pkg.assets.portraits.values()) + list(pkg.assets.backgrounds.values()):
+            full = assets_root / path
+            if not full.exists():
+                print(
+                    f"WARNING: Asset file missing: {full}  "
+                    f"(referenced in {scenario_dir.name}/assets.json). "
+                    f"Run 'python -m tools.generate_assets {scenario_dir.name}' to generate."
+                )
+
+
+_check_scenario_assets()
+
+
 @app.middleware("http")
 async def cleanup_expired_sessions(request: Request, call_next):
     """Periodically clean up expired sessions on each request."""
