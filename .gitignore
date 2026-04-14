@@ -5,3 +5,4 @@ __pycache__/
 traces/
 node_modules/
 dist/
+assets/scenarios/

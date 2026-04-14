@@ -343,9 +343,12 @@ class TestMainIntegration:
             MockOpenAI.return_value.images.generate.side_effect = RuntimeError("API down")
             main()
 
-        # JSON references should still be .svg
+        # JSON references should remain unchanged (not modified on failure)
         chars = json.loads(
             (ws / "scenarios" / "manor" / "characters.json").read_text(encoding="utf-8")
         )
-        for c in chars["characters"]:
-            assert c["portrait_asset"].endswith(".svg")
+        original_chars = json.loads(
+            (Path("scenarios") / "manor" / "characters.json").read_text(encoding="utf-8")
+        )
+        for c, orig in zip(chars["characters"], original_chars["characters"]):
+            assert c["portrait_asset"] == orig["portrait_asset"]
