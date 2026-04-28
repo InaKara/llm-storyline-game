@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel
 
 from backend.app.domain.scenario_models import StoryTruth
 
 
+
+
 class FlagsState(BaseModel):
     """Boolean progression flags that track gate/ending state."""
 
-    archive_unlocked: bool = False
-    game_finished: bool = False
+    flags: dict[str, bool] = {}
 
 
 class TurnRecord(BaseModel):
@@ -27,30 +30,21 @@ class ConversationState(BaseModel):
     """Sliding-window conversation context for LLM prompt composition."""
 
     last_speaker: str | None = None
-    steward_pressure: int = 0
+    counters: dict[str, int] = {}
     discovered_topics: list[str] = []
     summary: str = ""
     recent_turns: list[TurnRecord] = []
 
-
-class StewardState(BaseModel):
-    """Runtime state for the steward character."""
-
-    available: bool = True
-    yielded: bool = False
-
-
-class HeirState(BaseModel):
-    """Runtime state for the heir character."""
+class CharacterState(BaseModel):
+    """Runtime state for a character."""
 
     available: bool = True
-
+    extra: dict[str, Any] = {}
 
 class CastState(BaseModel):
     """Runtime state for all characters."""
 
-    steward: StewardState = StewardState()
-    heir: HeirState = HeirState()
+    characters: dict[str, CharacterState] = {}  
 
 
 class GameState(BaseModel):
@@ -72,17 +66,14 @@ class GameState(BaseModel):
         characters can be in different locations, this must also filter
         by ``self.location``.
         """
-        chars: list[str] = []
-        if self.cast_state.steward.available:
-            chars.append("steward")
-        if self.cast_state.heir.available:
-            chars.append("heir")
+        chars = [char for char,state in self.cast_state.characters.items() if state.available]
         return chars
 
     @property
     def available_exits(self) -> list[str]:
         """Derive which locations the player can move to from current state."""
         exits: list[str] = []
-        if self.location == "study" and self.flags.archive_unlocked:
+        #ToDo: complete independence from manor incl. "archive_unlocked" and "archive" 
+        if self.location == "study" and self.flags.flags.get("archive_unlocked", False):
             exits.append("archive")
         return exits
