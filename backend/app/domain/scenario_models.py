@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -76,13 +78,20 @@ class Claim(BaseModel):
     id: str
     description: str
 
+class EffectOp(BaseModel):
+    """An operation that modifies game state when a gate is unlocked or end condition is triggered."""
+
+    op: str # a required string naming the operation, e.g. "set_flag"
+    key: str | None = None # target name (flag name, state field name, etc.).
+    value: Any = None # the value to apply
+    character: str | None = None # optional string for the target character ID
 
 class Gate(BaseModel):
     """A progression gate that unlocks when all required claims are matched."""
 
     id: str
     required_claim_ids: list[str]
-    effect: str
+    effect: list[EffectOp]
     description: str
 
 
@@ -92,41 +101,32 @@ class EndCondition(BaseModel):
     trigger: str
     location: str | None = None
     requires_flag: str | None = None
-    effect: str
+    effect: list[EffectOp]
 
 
-class PressureRules(BaseModel):
-    """Rules controlling steward pressure mechanics."""
+class ConditionExpr(BaseModel):
+    """A single flag-based condition expression. Matches when the named flag holds the specified boolean value."""
 
-    min_claims_for_pressure: int
-    max_pressure: int
+    flag: str
+    value: bool = False
 
+class ConstraintRule(BaseModel):
+    """A single entry in the ordered constraint rule list. 
+    The first rule matching the addressed character and satisfying 
+    its condition (or having no condition) determines the active constraint set."""
 
-class ConstraintRuleSet(BaseModel):
-    """Behavioural constraints for a character in a specific context."""
-
-    may_yield: bool
-    may_deny: bool
-    may_deflect: bool
-    may_hint: bool
-
-
-class ConstraintRules(BaseModel):
-    """All constraint rule sets, keyed by context."""
-
-    steward_before_unlock: ConstraintRuleSet
-    steward_after_unlock: ConstraintRuleSet
-    heir_default: ConstraintRuleSet
-
+    character_id: str
+    condition: ConditionExpr | None = None
+    constraints: dict[str, bool] = {}
+    
 
 class ScenarioLogic(BaseModel):
     """Progression logic: claims, gates, end conditions, and constraint rules."""
 
     claims: list[Claim]
     gates: list[Gate]
-    end_conditions: list[EndCondition]
-    pressure_rules: PressureRules
-    constraint_rules: ConstraintRules
+    end_conditions: list[EndCondition]    
+    constraint_rules: list[ConstraintRule]
 
 
 # --- assets.json ---
@@ -145,38 +145,23 @@ class AssetManifest(BaseModel):
 class InitialFlags(BaseModel):
     """Starting flag values for a new session."""
 
-    archive_unlocked: bool = False
-    game_finished: bool = False
+    flags: dict[str, bool] = {}
 
 
 class InitialConversationState(BaseModel):
     """Starting conversation state for a new session."""
 
     last_speaker: str | None = None
-    steward_pressure: int = 0
+    counters: dict[str, int] = {}
     discovered_topics: list[str] = []
     summary: str = ""
     recent_turns: list = []
 
 
-class InitialStewardState(BaseModel):
-    """Starting steward state."""
-
-    available: bool = True
-    yielded: bool = False
-
-
-class InitialHeirState(BaseModel):
-    """Starting heir state."""
-
-    available: bool = True
-
-
 class InitialCastState(BaseModel):
     """Starting cast state for all characters."""
 
-    steward: InitialStewardState = InitialStewardState()
-    heir: InitialHeirState = InitialHeirState()
+    characters: dict[str, Any] = {}
 
 
 class InitialState(BaseModel):
