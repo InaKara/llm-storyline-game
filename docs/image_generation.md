@@ -96,7 +96,7 @@ pipe = FluxPipeline.from_pretrained("./models/flux-schnell", torch_dtype=torch.b
 
 ## 5. Memory Configuration for 8 GB VRAM
 
-Use `enable_model_cpu_offload()` to split the model between VRAM and system RAM:
+Use `enable_sequential_cpu_offload()` — the FLUX.1-schnell transformer alone is ~12 GB, which exceeds the 8 GB VRAM even when fully free. `enable_model_cpu_offload()` will always OOM on this GPU:
 
 ```python
 import torch
@@ -106,16 +106,10 @@ pipe = FluxPipeline.from_pretrained(
     "black-forest-labs/FLUX.1-schnell",
     torch_dtype=torch.bfloat16,
 )
-pipe.enable_model_cpu_offload()  # critical for 8 GB VRAM
+pipe.enable_sequential_cpu_offload()  # required for 8 GB VRAM — do NOT use enable_model_cpu_offload()
 ```
 
-**If you still run out of VRAM**, use the more aggressive offload mode:
-
-```python
-pipe.enable_sequential_cpu_offload()  # slower, lower peak VRAM
-```
-
-**Do not call** `pipe.to("cuda")` when using CPU offload — `enable_model_cpu_offload()` handles device placement internally.
+**Do not call** `pipe.to("cuda")` — `enable_sequential_cpu_offload()` handles device placement internally.
 
 ---
 
